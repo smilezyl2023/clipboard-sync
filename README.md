@@ -2,6 +2,14 @@
 
 一个可自部署的跨设备剪贴板同步工具，支持文本、图片、任意文件，基于 Next.js 14 + Vercel Blob + Upstash Redis 实现。
 
+<p align="center">
+  <img src="./docs/demo.gif" alt="Clipboard Sync Demo" width="800" />
+</p>
+
+<p align="center">
+  <sub>30 秒演示 · <a href="./docs/demo.mp4">下载高清 MP4</a></sub>
+</p>
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsmilezyl2023%2Fclipboard-sync&project-name=clipboard-sync&repository-name=clipboard-sync&integration-ids=oac_hb2LITYajhRQ0i4QznmKH7gx)
 
 ## ✨ 功能
