@@ -6,21 +6,30 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=./.cache/ms-playwright playwright test",
+    "test:e2e:headed": "PLAYWRIGHT_BROWSERS_PATH=./.cache/ms-playwright playwright test --headed",
+    "test:e2e:ui": "PLAYWRIGHT_BROWSERS_PATH=./.cache/ms-playwright playwright test --ui",
+    "test:e2e:debug": "PLAYWRIGHT_BROWSERS_PATH=./.cache/ms-playwright playwright test --debug",
+    "test:e2e:install": "PLAYWRIGHT_BROWSERS_PATH=./.cache/ms-playwright playwright install chromium"
   },
   "dependencies": {
     "@upstash/redis": "^1.37.0",
     "@vercel/blob": "^2.3.3",
+    "geist": "^1.7.0",
     "next": "14.2.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/node": "^20.12.12",
     "@types/react": "^18.3.2",
     "@types/react-dom": "^18.3.0",
     "@types/uuid": "^9.0.8",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.3",
     "typescript": "^5.4.5"
   }
 }
