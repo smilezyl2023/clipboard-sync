@@ -17,3 +17,15 @@ build
 
 # env
 .env*.local
+
+# playwright
+.cache/ms-playwright
+test-results
+playwright-report
+.playwright-mcp
+
+# SDD / AI workflow artifacts (local only)
+MEMORY.md
+PROGRESS.md
+memory/
+specs/

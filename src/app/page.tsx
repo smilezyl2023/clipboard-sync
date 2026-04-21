@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 
 type RecordType = 'text' | 'image' | 'file'
 
@@ -18,6 +18,8 @@ interface Record {
   blobPathname?: string
   expiresAt?: number
   uploading?: boolean
+  /** 仅上传占位：0–100，完成后由服务端记录替换 */
+  uploadProgress?: number
 }
 
 interface Toast {
@@ -53,12 +55,18 @@ export default function Home() {
   const [authReady, setAuthReady] = useState(false)
 
   const [records, setRecords] = useState<Record[]>([])
+  const [recordsLoadStatus, setRecordsLoadStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string | undefined>(undefined)
+  const loadRecordsRequestId = useRef(0)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [content, setContent] = useState('')
   const [, setLastModified] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
   const [toast, setToast] = useState<Toast | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  /** 移动端左滑展开删除时，同时仅一行保持展开 */
+  const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null)
+  const [isMobileSwipe, setIsMobileSwipe] = useState(true)
   // 用于触发剩余时间 UI 刷新
   const [, setNowTick] = useState(0)
 
@@ -71,9 +79,19 @@ export default function Home() {
       const saved = localStorage.getItem(PHONE_STORAGE_KEY)
       if (saved && PHONE_RE.test(saved)) {
         setUserPhone(saved)
+        setRecordsLoadStatus('loading')
       }
       setAuthReady(true)
     }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(max-width: 639px)')
+    const apply = () => setIsMobileSwipe(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
   }, [])
 
   // 阻止浏览器缩放（iOS Safari 和 macOS 忽略 viewport 的 maximum-scale，需要 JS 拦截）
@@ -110,6 +128,26 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [records])
 
+  /** 可参与多选的记录（上传中占位不可批量删，也不参与全选） */
+  const selectableRecordIds = useMemo(
+    () => records.filter(r => !r.uploading).map(r => r.id),
+    [records]
+  )
+  const selectableCount = selectableRecordIds.length
+
+  useEffect(() => {
+    setSelectedIds(prev => {
+      const next = new Set(
+        Array.from(prev).filter(id => {
+          const r = records.find(rec => rec.id === id)
+          return r && !r.uploading
+        })
+      )
+      if (next.size === prev.size && Array.from(prev).every(id => next.has(id))) return prev
+      return next
+    })
+  }, [records])
+
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
@@ -117,6 +155,8 @@ export default function Home() {
 
   const handleAuthSuccess = useCallback((phone: string) => {
     localStorage.setItem(PHONE_STORAGE_KEY, phone)
+    setRecordsLoadStatus('loading')
+    setLoadErrorMessage(undefined)
     setUserPhone(phone)
     setRecords([])
     setSelectedIds(new Set())
@@ -127,6 +167,8 @@ export default function Home() {
     if (!confirm('切换账号将清除本设备保存的登录信息（服务端数据仍保留 7 天），是否继续？')) return
     localStorage.removeItem(PHONE_STORAGE_KEY)
     setUserPhone(null)
+    setRecordsLoadStatus('idle')
+    setLoadErrorMessage(undefined)
     setRecords([])
     setSelectedIds(new Set())
     setLastModified(0)
@@ -134,18 +176,36 @@ export default function Home() {
 
   const loadRecords = useCallback(async () => {
     if (!userPhone) return
+    const reqId = ++loadRecordsRequestId.current
+    setRecordsLoadStatus('loading')
+    setLoadErrorMessage(undefined)
     try {
       const res = await fetch('/api/records', {
         headers: { 'x-user-phone': userPhone },
         cache: 'no-store',
       })
+      if (reqId !== loadRecordsRequestId.current) return
       if (res.status === 401) {
         localStorage.removeItem(PHONE_STORAGE_KEY)
         setUserPhone(null)
         showToast('登录已失效，请重新输入', 'error')
+        setRecordsLoadStatus('idle')
+        return
+      }
+      if (!res.ok) {
+        let msg = `加载失败（HTTP ${res.status}）`
+        try {
+          const errBody = await res.json()
+          if (errBody?.error && typeof errBody.error === 'string') msg = errBody.error
+        } catch {
+          /* ignore */
+        }
+        setLoadErrorMessage(msg)
+        setRecordsLoadStatus('error')
         return
       }
       const data = await res.json()
+      if (reqId !== loadRecordsRequestId.current) return
       setRecords(prev => {
         // 保留当前正在上传的占位项，避免被服务端响应覆盖掉
         const uploading = prev.filter(r => r.uploading)
@@ -153,8 +213,15 @@ export default function Home() {
         return [...uploading, ...server.filter(s => !uploading.some(u => u.id === s.id))]
       })
       setLastModified(data.lastModified || 0)
+      setRecordsLoadStatus('idle')
+      setLoadErrorMessage(undefined)
     } catch (error) {
+      if (reqId !== loadRecordsRequestId.current) return
       console.error('加载记录失败:', error)
+      setLoadErrorMessage(
+        error instanceof Error ? error.message : '网络异常，请检查连接后重试'
+      )
+      setRecordsLoadStatus('error')
     }
   }, [userPhone, showToast])
 
@@ -257,6 +324,7 @@ export default function Home() {
         mimeType: mime,
         size: file.size,
         uploading: true,
+        uploadProgress: 0,
       }
       setRecords(prev => [placeholder, ...prev])
 
@@ -272,6 +340,12 @@ export default function Home() {
           }),
           multipart: file.size > 4 * 1024 * 1024,
           contentType: mime,
+          onUploadProgress: ({ percentage }) => {
+            const p = Math.min(100, Math.round(percentage))
+            setRecords(prev =>
+              prev.map(r => (r.id === recordId ? { ...r, uploadProgress: p } : r))
+            )
+          },
         })
 
         const res = await fetch('/api/records/create-media', {
@@ -353,6 +427,8 @@ export default function Home() {
   }
 
   const toggleSelect = (id: string, checked: boolean) => {
+    const r = records.find(rec => rec.id === id)
+    if (r?.uploading) return
     setSelectedIds(prev => {
       const newSet = new Set(prev)
       if (checked) newSet.add(id)
@@ -362,12 +438,101 @@ export default function Home() {
   }
 
   const toggleSelectAll = (checked: boolean) => {
-    if (checked) setSelectedIds(new Set(records.map(r => r.id)))
+    if (checked) setSelectedIds(new Set(selectableRecordIds))
     else setSelectedIds(new Set())
   }
 
+  const copyRecord = useCallback(
+    async (record: Record) => {
+      if (record.uploading) {
+        showToast('上传中，请稍候再复制', 'info')
+        return
+      }
+      const recType = record.type ?? 'text'
+      const text =
+        recType === 'text'
+          ? (record.content != null ? record.content : (record.preview ?? ''))
+          : (record.blobUrl ?? '')
+      if (!text) {
+        showToast('暂无可复制内容', 'error')
+        return
+      }
+      if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+        showToast('当前环境不支持剪贴板', 'error')
+        return
+      }
+      try {
+        await navigator.clipboard.writeText(text)
+        showToast(recType === 'text' ? '已复制' : '已复制链接', 'success')
+      } catch (err) {
+        const name = err instanceof Error ? err.name : ''
+        const msg = err instanceof Error ? err.message : ''
+        const denied =
+          name === 'NotAllowedError' ||
+          /denied|not allowed|permission/i.test(msg)
+        showToast(
+          denied ? '无法写入剪贴板，请检查权限或改用 HTTPS 访问' : '复制失败，请重试',
+          'error'
+        )
+      }
+    },
+    [showToast]
+  )
+
+  const deleteRecordById = useCallback(
+    async (id: string) => {
+      if (!userPhone) return
+      const rec = records.find(r => r.id === id)
+      if (!rec) return
+      if (rec.uploading) {
+        showToast('上传中，无法删除', 'info')
+        return
+      }
+      if (!confirm('确定删除这条记录？')) return
+      try {
+        const res = await fetch(`/api/records/delete?id=${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: { 'x-user-phone': userPhone },
+        })
+        if (res.status === 401) {
+          localStorage.removeItem(PHONE_STORAGE_KEY)
+          setUserPhone(null)
+          showToast('登录已失效，请重新输入', 'error')
+          return
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: '删除失败' }))
+          throw new Error(err.error || '删除失败')
+        }
+        setRecords(prev => prev.filter(r => r.id !== id))
+        setSelectedIds(prev => {
+          if (!prev.has(id)) return prev
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+        setSwipeOpenId(null)
+        showToast('已删除', 'success')
+      } catch (error) {
+        console.error('删除失败:', error)
+        showToast(error instanceof Error ? error.message : '删除失败，请重试', 'error')
+      }
+    },
+    [userPhone, records, showToast]
+  )
+
   const deleteSelected = async () => {
     if (!userPhone || selectedIds.size === 0) return
+    const idsToDelete = Array.from(selectedIds).filter(id => {
+      const r = records.find(rec => rec.id === id)
+      return r && !r.uploading
+    })
+    if (idsToDelete.length === 0) {
+      showToast('选中项均为上传中，无法批量删除', 'info')
+      return
+    }
+    const n = idsToDelete.length
+    if (!confirm(`确定要删除已选中的 ${n} 条记录吗？`)) return
     try {
       const res = await fetch('/api/records/delete', {
         method: 'DELETE',
@@ -375,7 +540,7 @@ export default function Home() {
           'Content-Type': 'application/json',
           'x-user-phone': userPhone,
         },
-        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+        body: JSON.stringify({ ids: idsToDelete }),
       })
 
       if (!res.ok) {
@@ -383,7 +548,8 @@ export default function Home() {
         throw new Error(err.error || '删除失败')
       }
 
-      setRecords(prev => prev.filter(r => !selectedIds.has(r.id)))
+      const removed = new Set(idsToDelete)
+      setRecords(prev => prev.filter(r => !removed.has(r.id)))
       setSelectedIds(new Set())
       showToast('删除成功', 'success')
     } catch (error) {
@@ -421,12 +587,17 @@ export default function Home() {
     return { text: `${hours} 小时${rem > 0 ? ' ' + rem + ' 分' : ''}后删除`, urgent: false }
   }
 
+  const selectedSelectableCount = useMemo(() => {
+    const selectable = new Set(selectableRecordIds)
+    return Array.from(selectedIds).filter(id => selectable.has(id)).length
+  }, [selectedIds, selectableRecordIds])
+
   const selectAllState =
-    records.length === 0
+    selectableCount === 0
       ? 'none'
-      : selectedIds.size === 0
+      : selectedSelectableCount === 0
         ? 'none'
-        : selectedIds.size === records.length
+        : selectedSelectableCount === selectableCount
           ? 'all'
           : 'indeterminate'
 
@@ -548,9 +719,18 @@ export default function Home() {
                 <path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
               </svg>
               历史记录
-              <span className="badge">{records.length}</span>
+              {recordsLoadStatus === 'loading' && records.length > 0 && (
+                <span className="section-header-refresh" title="正在刷新列表">
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                </span>
+              )}
+              <span className="badge" aria-live="polite">
+                {recordsLoadStatus === 'loading' && records.length === 0 ? '…' : records.length}
+              </span>
             </h2>
-            {records.length > 0 && (
+            {selectableCount > 0 && (
               <div className="select-actions">
                 <label className="checkbox-label">
                   <input
@@ -568,7 +748,21 @@ export default function Home() {
             )}
           </div>
 
-          <div className="records-list">
+          {recordsLoadStatus === 'error' && loadErrorMessage && (
+            <div className="records-error-banner" role="alert">
+              <p className="records-error-text">{loadErrorMessage}</p>
+              <button
+                type="button"
+                className="btn btn-primary records-error-retry"
+                data-testid="records-retry"
+                onClick={() => loadRecords()}
+              >
+                重试
+              </button>
+            </div>
+          )}
+
+          <div className="records-list" aria-busy={recordsLoadStatus === 'loading'}>
             {records.map((record) => (
               <RecordRow
                 key={record.id}
@@ -579,11 +773,22 @@ export default function Home() {
                 onClickImage={(url) => setLightboxUrl(url)}
                 formatTime={formatTime}
                 formatRemaining={formatRemaining}
+                onDeleteRecord={deleteRecordById}
+                onCopyRecord={copyRecord}
+                swipeOpenId={swipeOpenId}
+                onSwipeOpenExclusive={setSwipeOpenId}
+                isMobileSwipe={isMobileSwipe}
               />
             ))}
+            {recordsLoadStatus === 'loading' && records.length === 0 &&
+              Array.from({ length: 5 }).map((_, i) => <RecordsSkeletonRow key={i} />)}
+            {recordsLoadStatus === 'loading' &&
+              records.length > 0 &&
+              records.every(r => r.uploading) &&
+              Array.from({ length: 3 }).map((_, i) => <RecordsSkeletonRow key={`sk-${i}`} />)}
           </div>
 
-          {records.length === 0 && (
+          {recordsLoadStatus === 'idle' && records.length === 0 && (
             <div className="empty-state">
               <div className="empty-icon">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -602,7 +807,12 @@ export default function Home() {
           <div className="batch-bar">
             <div className="batch-bar-content">
               <span className="batch-info">已选择 {selectedIds.size} 项</span>
-              <button className="btn btn-destructive" onClick={deleteSelected}>
+              <button
+                type="button"
+                className="btn btn-destructive"
+                data-testid="batch-delete"
+                onClick={() => void deleteSelected()}
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
                 </svg>
@@ -628,6 +838,20 @@ export default function Home() {
   )
 }
 
+function RecordsSkeletonRow() {
+  return (
+    <div className="record-item record-skeleton">
+      <div className="skeleton-block skeleton-checkbox" aria-hidden />
+      <div className="record-body">
+        <div className="skeleton-block skeleton-line skeleton-line-title" aria-hidden />
+        <div className="skeleton-block skeleton-line skeleton-line-meta" aria-hidden />
+      </div>
+    </div>
+  )
+}
+
+const SWIPE_DELETE_PX = 72
+
 // ============ 列表项 ============
 function RecordRow({
   record,
@@ -637,6 +861,11 @@ function RecordRow({
   onClickImage,
   formatTime,
   formatRemaining,
+  onDeleteRecord,
+  onCopyRecord,
+  swipeOpenId,
+  onSwipeOpenExclusive,
+  isMobileSwipe,
 }: {
   record: Record
   selected: boolean
@@ -645,17 +874,124 @@ function RecordRow({
   onClickImage: (url: string) => void
   formatTime: (t: number) => string
   formatRemaining: (t: number) => { text: string; urgent: boolean }
+  onDeleteRecord: (id: string) => void | Promise<void>
+  onCopyRecord: (record: Record) => void | Promise<void>
+  swipeOpenId: string | null
+  onSwipeOpenExclusive: (id: string | null) => void
+  isMobileSwipe: boolean
 }) {
   const type = record.type ?? 'text'
   const remaining = record.expiresAt ? formatRemaining(record.expiresAt) : null
+  /** 拖动中露出宽度（px），null 表示未在横向拖动，使用 swipeOpenId 推导 */
+  const [liveReveal, setLiveReveal] = useState<number | null>(null)
+  const lastRevealRef = useRef(0)
+  const touchRef = useRef<{
+    startX: number
+    startY: number
+    base: number
+    locked?: 'h' | 'v'
+  } | null>(null)
 
-  return (
-    <div className={`record-item ${selected ? 'selected' : ''}`}>
+  const opened = isMobileSwipe && swipeOpenId === record.id
+  const revealedPx =
+    liveReveal !== null ? liveReveal : opened ? SWIPE_DELETE_PX : 0
+  const translateX = isMobileSwipe ? -revealedPx : 0
+
+  useEffect(() => {
+    if (!isMobileSwipe || swipeOpenId === null || swipeOpenId === record.id) return
+    setLiveReveal(null)
+  }, [swipeOpenId, record.id, isMobileSwipe])
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobileSwipe || record.uploading) return
+    const t = e.touches[0]
+    const base = opened ? SWIPE_DELETE_PX : 0
+    touchRef.current = {
+      startX: t.clientX,
+      startY: t.clientY,
+      base,
+    }
+    lastRevealRef.current = base
+    if (swipeOpenId !== null && swipeOpenId !== record.id) {
+      onSwipeOpenExclusive(null)
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobileSwipe || record.uploading || !touchRef.current) return
+    const t = e.touches[0]
+    const dx = t.clientX - touchRef.current.startX
+    const dy = t.clientY - touchRef.current.startY
+    if (!touchRef.current.locked) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+      touchRef.current.locked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
+    }
+    if (touchRef.current.locked === 'v') return
+    e.preventDefault()
+    const newRevealed = Math.max(
+      0,
+      Math.min(SWIPE_DELETE_PX, touchRef.current.base - dx)
+    )
+    lastRevealRef.current = newRevealed
+    setLiveReveal(newRevealed)
+  }
+
+  const handleTouchEnd = () => {
+    if (!isMobileSwipe || record.uploading) {
+      touchRef.current = null
+      return
+    }
+    const ref = touchRef.current
+    touchRef.current = null
+    if (!ref) return
+    if (ref.locked !== 'h') {
+      setLiveReveal(null)
+      return
+    }
+    const endReveal = lastRevealRef.current
+    setLiveReveal(null)
+    if (endReveal > SWIPE_DELETE_PX / 2) onSwipeOpenExclusive(record.id)
+    else onSwipeOpenExclusive(null)
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    void onDeleteRecord(record.id)
+  }
+
+  const handleDeleteKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      void onDeleteRecord(record.id)
+    }
+  }
+
+  const handleCopyClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    void onCopyRecord(record)
+  }
+
+  const handleCopyKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      e.stopPropagation()
+      void onCopyRecord(record)
+    }
+  }
+
+  const rowInner = (
+    <>
       <input
         type="checkbox"
         className="record-checkbox"
         checked={selected}
+        disabled={record.uploading}
+        title={record.uploading ? '上传中不可多选删除' : undefined}
+        aria-label={record.uploading ? '上传中，不可选择' : '选择此条记录'}
         onChange={(e) => onToggle(e.target.checked)}
+        onClick={(e) => e.stopPropagation()}
       />
 
       {type === 'image' && record.blobUrl ? (
@@ -691,7 +1027,10 @@ function RecordRow({
           {record.uploading && (
             <>
               <span className="record-dot">·</span>
-              <span className="record-uploading">上传中…</span>
+              <span className="record-uploading">
+                上传中
+                {typeof record.uploadProgress === 'number' ? ` ${record.uploadProgress}%` : '…'}
+              </span>
             </>
           )}
           {remaining && !record.uploading && (
@@ -703,23 +1042,107 @@ function RecordRow({
             </>
           )}
         </div>
+        {record.uploading && (
+          <div
+            className="record-upload-progress-wrap"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={record.uploadProgress ?? 0}
+            aria-label="上传进度"
+          >
+            <div className="record-upload-progress-track">
+              <div
+                className="record-upload-progress-fill"
+                style={{ width: `${record.uploadProgress ?? 0}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {type === 'file' && record.blobUrl && !record.uploading && (
-        <a
-          href={record.blobUrl}
-          download={record.fileName}
-          className="btn btn-ghost record-download"
-          onClick={(e) => e.stopPropagation()}
-          title="下载"
+      <div className="record-actions">
+        <button
+          type="button"
+          className="btn btn-ghost record-copy"
+          aria-label="复制到剪贴板"
+          title={record.uploading ? '上传中' : '复制'}
+          disabled={record.uploading}
+          onClick={handleCopyClick}
+          onKeyDown={handleCopyKeyDown}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" x2="12" y1="15" y2="3"/>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
           </svg>
-        </a>
-      )}
+        </button>
+        {type === 'file' && record.blobUrl && !record.uploading && (
+          <a
+            href={record.blobUrl}
+            download={record.fileName}
+            className="btn btn-ghost record-download"
+            onClick={(e) => e.stopPropagation()}
+            title="下载"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" x2="12" y1="15" y2="3"/>
+            </svg>
+          </a>
+        )}
+      </div>
+    </>
+  )
+
+  return (
+    <div
+      className={`record-swipe-outer ${selected ? 'selected' : ''}`}
+      data-testid="record-row"
+      data-record-id={record.id}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
+      <div
+        className={`record-swipe-track ${liveReveal !== null ? 'record-swipe-dragging' : ''}`}
+        style={
+          isMobileSwipe
+            ? { transform: `translateX(${translateX}px)` }
+            : undefined
+        }
+      >
+        <div className={`record-item record-swipe-main ${selected ? 'selected' : ''}`}>{rowInner}</div>
+        <button
+          type="button"
+          className="record-swipe-delete"
+          aria-label="删除此条记录"
+          title={record.uploading ? '上传中' : '删除'}
+          disabled={record.uploading}
+          onClick={handleDeleteClick}
+          onKeyDown={handleDeleteKeyDown}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            focusable="false"
+          >
+            <path d="M3 6h18" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <line x1="10" x2="10" y1="11" y2="17" />
+            <line x1="14" x2="14" y1="11" y2="17" />
+          </svg>
+        </button>
+      </div>
     </div>
   )
 }
