@@ -1,5 +1,5 @@
 // 中国大陆手机号格式：1 开头，第二位 3-9，共 11 位
-const PHONE_RE = /^1[3-9]\d{9}$/
+export const PHONE_RE = /^1[3-9]\d{9}$/
 
 // 用户数据保留 7 天（秒）
 export const USER_TTL_SECONDS = 7 * 24 * 60 * 60

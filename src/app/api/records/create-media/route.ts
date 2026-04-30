@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { del } from '@vercel/blob'
 import { createMediaRecord } from '@/lib/store'
 import { getPhoneFromRequest } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/rate-limit'
+
+const RATE_WINDOW_MS = 60 * 1000
 
 const MEDIA_TTL_MS = 3 * 60 * 60 * 1000 // 3 小时
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024
@@ -18,6 +21,11 @@ interface CreateMediaBody {
 }
 
 export async function POST(request: Request) {
+  const rl = checkRateLimit(request, 60, RATE_WINDOW_MS)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: '请求过于频繁，请稍后再试' }, { status: 429 })
+  }
+
   const phone = getPhoneFromRequest(request)
   if (!phone) {
     return NextResponse.json({ error: '无访问权限' }, { status: 401 })
@@ -61,16 +69,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '文件大小超限' }, { status: 400 })
   }
 
-  const record = await createMediaRecord(phone, {
-    id,
-    type,
-    fileName,
-    mimeType,
-    size,
-    blobUrl,
-    blobPathname,
-    ttlMs: MEDIA_TTL_MS,
-  })
-
-  return NextResponse.json({ record })
+  try {
+    const record = await createMediaRecord(phone, {
+      id,
+      type,
+      fileName,
+      mimeType,
+      size,
+      blobUrl,
+      blobPathname,
+      ttlMs: MEDIA_TTL_MS,
+    })
+    return NextResponse.json({ record })
+  } catch (e) {
+    console.error('创建媒体记录失败:', e)
+    return NextResponse.json({ error: '创建媒体记录失败' }, { status: 500 })
+  }
 }

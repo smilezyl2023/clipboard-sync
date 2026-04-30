@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 import { isAllowedPhone } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/rate-limit'
+
+const RATE_WINDOW_MS = 60 * 1000
 
 // 单次上传大小上限
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024 // 10MB
@@ -26,7 +29,6 @@ const ALLOWED_CONTENT_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-powerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'application/octet-stream',
 ]
 
 interface ClientPayload {
@@ -36,6 +38,11 @@ interface ClientPayload {
 }
 
 export async function POST(request: Request) {
+  const rl = checkRateLimit(request, 60, RATE_WINDOW_MS)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: '请求过于频繁，请稍后再试' }, { status: 429 })
+  }
+
   const body = (await request.json()) as HandleUploadBody
 
   try {

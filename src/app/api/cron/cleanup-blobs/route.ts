@@ -14,6 +14,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: '未配置 ALLOWED_PHONE' }, { status: 500 })
   }
 
-  const removed = await purgeExpiredMedia(phone)
-  return NextResponse.json({ removed })
+  try {
+    const removed = await purgeExpiredMedia(phone)
+    return NextResponse.json({ removed })
+  } catch (e) {
+    console.error('清理过期媒体失败:', e)
+    return NextResponse.json({ error: '清理失败' }, { status: 500 })
+  }
 }

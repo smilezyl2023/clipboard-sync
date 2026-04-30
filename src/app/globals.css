@@ -34,6 +34,28 @@
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --record-swipe-delete-w: 72px;
+
+  /* 基础字号 — iOS Safari 要求 input font-size ≥ 16px 才不触发放大 */
+  --font-size-base: 16px;
+}
+
+[data-theme="dark"] {
+  --background: 220 15% 6%;
+  --background-secondary: 220 15% 10%;
+  --card: 220 15% 8%;
+  --card-hover: 220 15% 13%;
+  --border: 220 13% 16%;
+  --border-hover: 220 13% 26%;
+  --primary: 220 80% 60%;
+  --primary-foreground: 0 0% 100%;
+  --foreground: 220 20% 90%;
+  --foreground-secondary: 220 15% 65%;
+  --foreground-muted: 220 10% 48%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --shadow: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
 }
 
 /* ============ 基础重置 ============ */
@@ -44,7 +66,7 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: var(--font-size-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -59,6 +81,36 @@ body {
   color: hsl(var(--foreground));
   line-height: 1.6;
   min-height: 100vh;
+}
+
+/* ============ 离线横幅 ============ */
+.offline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  animation: slide-down 0.25s ease-out;
+}
+
+.offline-banner svg {
+  flex-shrink: 0;
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* ============ 页面布局 ============ */
@@ -134,6 +186,13 @@ body {
 
 .input-card {
   padding: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.input-card.drag-over {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+  background: hsl(var(--primary) / 0.04);
 }
 
 .textarea-wrapper {
@@ -186,6 +245,11 @@ body {
 .char-count {
   font-size: 0.8125rem;
   color: hsl(var(--foreground-muted));
+}
+
+.char-overlimit {
+  color: hsl(var(--destructive));
+  font-weight: 600;
 }
 
 .input-actions {
@@ -281,6 +345,49 @@ body {
 .btn-destructive:hover:not(:disabled) {
   background: hsl(0 72% 45%);
   border-color: hsl(0 72% 45%);
+}
+
+/* ============ Focus Visible（键盘导航可见焦点） ============ */
+.btn:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+.btn-destructive:focus-visible {
+  outline-color: hsl(var(--destructive));
+}
+
+.btn-link:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+.checkbox-label input:focus-visible + .checkbox {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+.record-thumb:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+.record-retry-btn:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+.toast-undo:focus-visible {
+  outline: 2px solid hsl(0 0% 100% / 0.7);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+.lightbox:focus-visible {
+  outline: 2px solid hsl(0 0% 100% / 0.7);
+  outline-offset: -4px;
 }
 
 /* ============ 历史记录区域 ============ */
@@ -397,6 +504,116 @@ body {
   border-radius: 1px;
 }
 
+/* ============ 搜索筛选 ============ */
+.search-filter {
+  margin-bottom: 12px;
+}
+
+.search-filter-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-filter-icon {
+  position: absolute;
+  left: 12px;
+  color: hsl(var(--foreground-muted));
+  pointer-events: none;
+}
+
+.search-filter-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 36px 0 36px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-filter-input::placeholder {
+  color: hsl(var(--foreground-muted));
+}
+
+.search-filter-input:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+}
+
+.search-filter-clear {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: hsl(var(--foreground-muted) / 0.2);
+  color: hsl(var(--foreground-secondary));
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.search-filter-clear:hover {
+  background: hsl(var(--foreground-muted) / 0.35);
+}
+
+.search-filter-clear:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 1px;
+}
+
+.search-filter-tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.search-filter-tab {
+  padding: 4px 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 100px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--foreground-secondary));
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.search-filter-tab:hover {
+  background: hsl(var(--background-secondary));
+  color: hsl(var(--foreground));
+}
+
+.search-filter-tab.active {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.search-filter-tab:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 1px;
+}
+
+.search-filter-count {
+  display: block;
+  margin-top: 6px;
+  padding-left: 4px;
+  font-size: 0.75rem;
+  color: hsl(var(--foreground-muted));
+}
+
 /* ============ 记录列表 ============ */
 .records-list {
   display: flex;
@@ -417,6 +634,11 @@ body {
   border-radius: var(--radius);
 }
 
+[data-theme="dark"] .records-error-banner {
+  background: hsl(0 30% 14%);
+  border-color: hsl(0 25% 22%);
+}
+
 .records-error-text {
   flex: 1;
   min-width: 0;
@@ -424,6 +646,10 @@ body {
   color: hsl(0 50% 28%);
   margin: 0;
   line-height: 1.45;
+}
+
+[data-theme="dark"] .records-error-text {
+  color: hsl(0 55% 68%);
 }
 
 .records-error-retry {
@@ -452,6 +678,15 @@ body {
   );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+[data-theme="dark"] .skeleton-block {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--background-secondary)) 0%,
+    hsl(220 13% 20%) 50%,
+    hsl(var(--background-secondary)) 100%
+  );
 }
 
 .skeleton-checkbox {
@@ -593,6 +828,11 @@ body {
   filter: brightness(1.05);
 }
 
+.record-swipe-delete:focus-visible {
+  outline: 2px solid hsl(var(--destructive-foreground));
+  outline-offset: -4px;
+}
+
 .record-swipe-delete:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -703,6 +943,29 @@ body {
 
 .record-uploading {
   color: hsl(var(--primary));
+}
+
+.record-upload-failed {
+  color: hsl(var(--destructive));
+}
+
+.record-retry-btn {
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: hsl(var(--primary));
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.record-retry-btn:hover {
+  opacity: 0.8;
+}
+
+.record-item.upload-failed {
+  border-left: 3px solid hsl(var(--destructive));
 }
 
 .record-upload-progress-wrap {
@@ -824,6 +1087,12 @@ body {
   animation: fade-in 0.15s ease-out;
 }
 
+.lightbox-spinner {
+  position: absolute;
+  color: hsl(0 0% 80%);
+  animation: spin 0.8s linear infinite;
+}
+
 .lightbox img {
   max-width: 100%;
   max-height: 100%;
@@ -885,52 +1154,95 @@ body {
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
-  background: hsl(var(--foreground));
+  background: hsl(220 20% 12%);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
+}
+
+[data-theme="dark"] .batch-bar-content {
+  border: 1px solid hsl(var(--border));
 }
 
 .batch-info {
   font-size: 0.875rem;
   font-weight: 500;
-  color: hsl(var(--card));
+  color: hsl(0 0% 95%);
 }
 
 .batch-bar .btn-destructive {
   background: hsl(var(--destructive));
 }
 
-/* ============ Toast ============ */
-.toast {
+/* ============ Toast 队列 ============ */
+.toast-container {
   position: fixed;
   top: 24px;
   left: 50%;
-  transform: translateX(-50%) translateY(-100px);
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast-item {
+  display: flex;
+  align-items: center;
   padding: 12px 20px;
-  background: hsl(var(--foreground));
+  background: hsl(220 20% 12%);
   border-radius: var(--radius);
   font-size: 0.875rem;
   font-weight: 500;
-  color: hsl(var(--card));
+  color: hsl(0 0% 95%);
   box-shadow: var(--shadow-md);
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
-  z-index: 1000;
+  animation: toast-in 0.2s ease-out;
+  pointer-events: auto;
+  white-space: nowrap;
 }
 
-.toast.show {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(0);
-}
-
-.toast.success {
+.toast-item.success {
   background: hsl(142 71% 45%);
 }
 
-.toast.error {
+.toast-item.error {
   background: hsl(var(--destructive));
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-undo {
+  background: none;
+  border: none;
+  border-left: 1px solid hsl(0 0% 100% / 0.3);
+  margin-left: 10px;
+  padding: 0 0 0 10px;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.toast-undo:hover {
+  opacity: 0.8;
+}
+
+.record-item.pending-delete {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 /* ============ 滚动条 ============ */
@@ -1052,16 +1364,24 @@ body {
   gap: 16px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .user-chip {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  height: 36px;
+  padding: 0 12px;
   background: hsl(var(--background-secondary));
   border: 1px solid hsl(var(--border));
   border-radius: 999px;
   font-size: 13px;
   color: hsl(var(--foreground-secondary));
+  box-sizing: border-box;
 }
 
 .user-chip svg {
@@ -1086,6 +1406,32 @@ body {
 
 .btn-link:hover {
   opacity: 0.8;
+}
+
+/* ============ 主题切换按钮 ============ */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: 50%;
+  background: hsl(var(--background-secondary));
+  color: hsl(var(--foreground-secondary));
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.theme-toggle:hover {
+  background: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
 }
 
 /* ============ 鉴权遮罩 ============ */
@@ -1144,38 +1490,6 @@ body {
   color: hsl(var(--foreground-secondary));
   line-height: 1.6;
   margin: 0 0 24px;
-}
-
-.auth-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: hsl(var(--background-secondary));
-  border-radius: 10px;
-  margin-bottom: 20px;
-}
-
-.auth-tab {
-  flex: 1;
-  padding: 8px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 500;
-  color: hsl(var(--foreground-secondary));
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.auth-tab.active {
-  background: hsl(var(--card));
-  color: hsl(var(--foreground));
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.auth-tab:not(.active):hover {
-  color: hsl(var(--foreground));
 }
 
 .auth-form {
@@ -1237,14 +1551,6 @@ body {
   justify-content: center;
 }
 
-.auth-tip {
-  margin: 16px 0 0;
-  font-size: 12px;
-  color: hsl(var(--foreground-muted));
-  line-height: 1.6;
-  text-align: center;
-}
-
 @media (max-width: 480px) {
   .auth-card {
     padding: 24px;
@@ -1257,5 +1563,13 @@ body {
 
   .user-phone {
     display: none;
+  }
+}
+
+/* 桌面端深色模式：删除按钮悬停 */
+@media (min-width: 640px) {
+  [data-theme="dark"] .record-swipe-delete:hover:not(:disabled) {
+    background: hsl(0 25% 16%);
+    border-color: hsl(0 25% 30%);
   }
 }

@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
 import { isAllowedPhone, isValidPhone } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/rate-limit'
+
+const RATE_WINDOW_MS = 60 * 1000
 
 export async function POST(request: Request) {
+  const rl = checkRateLimit(request, 5, RATE_WINDOW_MS)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: '请求过于频繁，请稍后再试' }, { status: 429 })
+  }
+
   try {
     const { phone } = await request.json()
 

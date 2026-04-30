@@ -11,7 +11,53 @@ import {
 test.describe('单条删除 · 桌面', () => {
   test.use({ viewport: { width: 1280, height: 720 } })
 
-  test('点击行内删除 → confirm → DELETE ?id= → 行消失', async ({ page }) => {
+  test('点击行内删除 → Toast → 撤销恢复记录（无 DELETE 请求）', async ({ page }) => {
+    await mockLogin(page)
+    await mockRecordsList(page, [E2E_TEXT_RECORD])
+
+    let deleteCalled = false
+    await page.route('**/api/records/delete**', async route => {
+      if (route.request().method() !== 'DELETE') {
+        await route.continue()
+        return
+      }
+      deleteCalled = true
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      })
+    })
+
+    await login(page)
+
+    await expect(page.locator('.record-swipe-outer')).toHaveCount(1)
+    await expect(page.getByText('E2E 单条删除')).toBeVisible()
+
+    // 点击删除 → 不再弹 confirm，直接进入延迟删除状态
+    await page.getByRole('button', { name: '删除此条记录' }).click()
+
+    // Toast "已删除" 出现 + 撤销按钮
+    await expect(page.getByText('已删除')).toBeVisible()
+
+    // 记录进入半透明 pendingDelete 状态
+    await expect(page.locator('.pending-delete')).toHaveCount(1)
+
+    // 点击撤销 → 恢复记录
+    await page.locator('.toast-item').getByRole('button', { name: '撤销' }).click()
+
+    // 恢复 Toast
+    await expect(page.getByText('已恢复')).toBeVisible()
+
+    // 记录恢复，没有发起 DELETE
+    expect(deleteCalled).toBe(false)
+    await expect(page.locator('.record-swipe-outer')).toHaveCount(1)
+    await expect(page.locator('.pending-delete')).toHaveCount(0)
+  })
+
+  test('点击行内删除 → 等 5s → DELETE ?id= → 行消失', async ({ page }) => {
+    await page.clock.install()
+
     await mockLogin(page)
     await mockRecordsList(page, [E2E_TEXT_RECORD])
 
@@ -32,21 +78,20 @@ test.describe('单条删除 · 桌面', () => {
 
     await login(page)
 
-    // 使用 .record-swipe-outer：本地 reuseExistingServer + HMR 时新加的 data-testid 可能未进 bundle，类名更稳
     await expect(page.locator('.record-swipe-outer')).toHaveCount(1)
     await expect(page.getByText('E2E 单条删除')).toBeVisible()
 
-    page.once('dialog', dialog => {
-      expect(dialog.message()).toContain('确定删除')
-      void dialog.accept()
-    })
-
     await page.getByRole('button', { name: '删除此条记录' }).click()
+
+    // Toast 出现
+    await expect(page.getByText('已删除')).toBeVisible()
+
+    // fast-forward 5 秒触发定时器
+    await page.clock.fastForward(5000)
 
     expect(deletedId).toBe(E2E_TEXT_RECORD.id)
     await expect(page.locator('.record-swipe-outer')).toHaveCount(0)
     await expect(page.getByText('暂无同步记录')).toBeVisible()
-    await expect(page.getByText('已删除')).toBeVisible()
   })
 })
 
@@ -57,15 +102,20 @@ test.describe('单条删除 · 窄屏滑动', () => {
     isMobile: true,
   })
 
-  test('左滑露出删除 → 点击删除 → confirm → 行消失', async ({ page }) => {
+  test('左滑露出删除 → 点击删除 → Toast → fast-forward → 行消失', async ({ page }) => {
+    await page.clock.install()
+
     await mockLogin(page)
     await mockRecordsList(page, [E2E_TEXT_RECORD])
 
+    let deletedId: string | null = null
     await page.route('**/api/records/delete**', async route => {
       if (route.request().method() !== 'DELETE') {
         await route.continue()
         return
       }
+      const url = new URL(route.request().url())
+      deletedId = url.searchParams.get('id')
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -80,13 +130,15 @@ test.describe('单条删除 · 窄屏滑动', () => {
 
     await swipeLeftOnRecordRow(row)
 
-    page.once('dialog', dialog => {
-      expect(dialog.message()).toContain('确定删除')
-      void dialog.accept()
-    })
-
     await row.getByRole('button', { name: '删除此条记录' }).click()
 
+    // Toast 出现
+    await expect(page.getByText('已删除')).toBeVisible()
+
+    // fast-forward 5 秒触发定时器
+    await page.clock.fastForward(5000)
+
+    expect(deletedId).toBe(E2E_TEXT_RECORD.id)
     await expect(page.locator('.record-swipe-outer')).toHaveCount(0)
     await expect(page.getByText('暂无同步记录')).toBeVisible()
   })

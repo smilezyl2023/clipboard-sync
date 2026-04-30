@@ -16,6 +16,7 @@ build
 .vercel
 
 # env
+.env
 .env*.local
 
 # playwright
@@ -24,8 +25,5 @@ test-results
 playwright-report
 .playwright-mcp
 
-# SDD / AI workflow artifacts (local only)
-MEMORY.md
-PROGRESS.md
-memory/
-specs/
+# Claude Code local config
+.claude/

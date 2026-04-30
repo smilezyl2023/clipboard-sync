@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { del } from '@vercel/blob'
 import { deleteRecord, deleteRecords, type Record } from '@/lib/store'
 import { getPhoneFromRequest } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/rate-limit'
+
+const RATE_WINDOW_MS = 60 * 1000
 
 function blobPathsOf(records: Record[]): string[] {
   return records
@@ -20,6 +23,11 @@ async function cleanupBlobs(records: Record[]): Promise<void> {
 }
 
 export async function DELETE(request: Request) {
+  const rl = checkRateLimit(request, 60, RATE_WINDOW_MS)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: '请求过于频繁，请稍后再试' }, { status: 429 })
+  }
+
   const phone = getPhoneFromRequest(request)
   if (!phone) {
     return NextResponse.json({ error: '未登录或手机号无效' }, { status: 401 })

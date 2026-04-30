@@ -39,7 +39,7 @@ export const E2E_TEXT_RECORD_2 = {
 export async function mockRecordsList(page: Page, records: unknown[]) {
   await page.route('**/api/records', async route => {
     if (route.request().method() !== 'GET') {
-      await route.continue()
+      await route.fallback()
       return
     }
     await route.fulfill({
