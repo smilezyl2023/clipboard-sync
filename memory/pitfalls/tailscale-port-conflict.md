@@ -5,6 +5,10 @@
 > 关联文件: `memory/integrations/tailscale-dev-server.md`
 > 状态: active
 
+## 概要
+
+Next.js dev 默认监听 ::（含 IPv4 映射），需 `-H 127.0.0.1` 避 EADDRINUSE。
+
 ## 背景
 
 在调试 T-2.1.2 的 e2e 测试时，需要暂时停掉 Tailscale Serve 释放 3000 端口给 Playwright 的 webServer。测试完成后恢复 Tailscale Serve，重启 dev server 时报 EADDRINUSE，但 `lsof -i:3000` 却看不到进程。
@@ -54,4 +58,4 @@ tailscale serve reset
 ## 关联
 
 - 关联 integration: `memory/integrations/tailscale-dev-server.md`
-- 关联 spec: `specs/search-filter-darkmode.md` §T-2.1.2
+- 关联 spec: `specs/archive/search-filter-darkmode/search-filter-darkmode.md` §T-2.1.2

@@ -3,9 +3,9 @@
 > 创建日期: 2026-04-23
 > 状态: COMPLETED
 > 进度: 9/9 任务完成
-> 最后更新: 2026-04-29（T-3.8.1 完成）
+> 最后任务: T-3.8.1 ✅ 2026-04-29 — 修复 SSR 水合布局闪烁（[详情](ux-enhancements.history.md#t-381)）
 > 关联任务: T-3.1.1 ~ T-3.8.1
-> 相关 memory: 无
+> 相关 memory: decision/pwa-js-zoom-prevention, pitfall/pwa-zoom-gestures
 
 ## 目标（WHY）
 

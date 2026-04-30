@@ -5,6 +5,10 @@
 > 关联文件: `src/app/api/records/upload/route.ts`, `src/app/api/records/create-media/route.ts`
 > 状态: active
 
+## 概要
+
+客户端直传，路径 `clipboard/{phone}/{id}/{file}`，缩略图 `?w=200`。
+
 ## 背景
 
 项目使用 Vercel Blob 存储用户上传的图片和文件。
@@ -45,6 +49,6 @@ Blob 路径格式：`clipboard/{phone}/{recordId}/{filename}`
 
 ## 关联
 
-- 关联 decision: `memory/decisions/client-direct-upload-vercel-blob.md`
-- 关联 pitfall: `memory/pitfalls/vercel-blob-onuploadcompleted-local-dev.md`
+- 关联 decision: `memory/decisions/blob-direct-upload.md`
+- 关联 pitfall: `memory/pitfalls/blob-callback-localhost.md`
 - 关联 integration: `memory/integrations/vercel-cron.md`

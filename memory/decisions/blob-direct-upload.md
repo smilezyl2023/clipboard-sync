@@ -5,6 +5,10 @@
 > 关联文件: `src/app/api/records/upload/route.ts`, `src/app/api/records/create-media/route.ts`
 > 状态: active
 
+## 概要
+
+三步上传流程（签发 token → 客户端直传 Blob → 写元数据）绕 Functions 4.5MB 限制。
+
 ## 背景
 
 Vercel Functions 请求体限制 4.5MB，服务端接收文件不可行。需要一种方式上传最大 50MB 的文件。
@@ -31,5 +35,5 @@ Vercel Functions 请求体限制 4.5MB，服务端接收文件不可行。需要
 
 ## 关联
 
-- 关联 pitfall: `memory/pitfalls/vercel-blob-onuploadcompleted-local-dev.md`
+- 关联 pitfall: `memory/pitfalls/blob-callback-localhost.md`
 - 关联 integration: `memory/integrations/vercel-blob.md`

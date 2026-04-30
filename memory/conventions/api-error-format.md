@@ -5,6 +5,10 @@
 > 关联文件: `src/app/api/*/route.ts`
 > 状态: active
 
+## 概要
+
+统一 `{ error: string }` JSON 中文错误，标准 HTTP 状态码 400/401/403/404/429/500。
+
 ## 背景
 
 部分 route 缺少 try/catch，异常时返回 Next.js 默认 HTML 500 页面而非结构化 JSON，前端无法解析。
@@ -38,4 +42,4 @@ NextResponse.json({ error: '错误描述' }, { status: number })
 
 ## 关联
 
-- 关联 spec: `specs/engineering-cleanup.md` §T-1.1.3
+- 关联 spec: `specs/archive/engineering-cleanup/engineering-cleanup.md` §T-1.1.3

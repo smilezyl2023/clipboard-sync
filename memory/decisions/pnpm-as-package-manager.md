@@ -5,6 +5,10 @@
 > 关联文件: `pnpm-lock.yaml`, `vercel.json`, `package.json`
 > 状态: active
 
+## 概要
+
+唯一包管理器：磁盘效率 + 严格依赖解析，不混用 npm/yarn。
+
 ## 背景
 
 项目曾同时存在 `package-lock.json` 和 `pnpm-lock.yaml`，依赖解析不一致可能导致部署失败。
@@ -27,4 +31,4 @@
 
 ## 关联
 
-- 关联 spec: `specs/engineering-cleanup.md` §T-1.1.1
+- 关联 spec: `specs/archive/engineering-cleanup/engineering-cleanup.md` §T-1.1.1

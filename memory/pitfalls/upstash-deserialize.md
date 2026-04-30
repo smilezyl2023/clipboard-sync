@@ -5,6 +5,10 @@
 > 关联文件: `src/lib/store.ts`
 > 状态: active
 
+## 概要
+
+Upstash REST API 可能自动反序列化 JSON，须 `typeof raw === 'string'` 防御性判断。
+
 ## 背景
 
 Upstash SDK 的 REST API 在某些版本下会自动将存储的 JSON 字符串反序列化为 JavaScript 对象，导致 `readUser()` 返回的结果类型不确定。

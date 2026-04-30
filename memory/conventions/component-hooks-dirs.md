@@ -5,6 +5,10 @@
 > 关联文件: `src/app/components/`, `src/app/hooks/`, `src/app/utils/`
 > 状态: active
 
+## 概要
+
+`src/app/{components,hooks,utils}/` 三分法，禁止内联到 page.tsx。
+
 ## 背景
 
 工程化重构时将 `page.tsx` 拆分为模块化结构，形成固定的目录约定。
@@ -25,4 +29,4 @@
 
 ## 关联
 
-- 关联 spec: `specs/engineering-cleanup.md` §代码重构
+- 关联 spec: `specs/archive/engineering-cleanup/engineering-cleanup.md` §代码重构

@@ -5,6 +5,10 @@
 > 关联文件: `vercel.json`, `src/app/api/cron/cleanup-blobs/route.ts`
 > 状态: active
 
+## 概要
+
+每日 03:00 UTC 兜底清理过期媒体，`CRON_SECRET` Bearer token 鉴权。
+
 ## 背景
 
 三步上传流程中，如果客户端在 blob 上传成功后、create-media 调用前失败，blob 已存储但 Redis 无记录，造成「孤儿 blob」。Cron Job 每日兜底清理这些过期媒体。
@@ -41,5 +45,5 @@
 
 ## 关联
 
-- 关联 decision: `memory/decisions/client-direct-upload-vercel-blob.md`
+- 关联 decision: `memory/decisions/blob-direct-upload.md`
 - 关联 integration: `memory/integrations/vercel-blob.md`

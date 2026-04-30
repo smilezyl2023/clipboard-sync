@@ -6,6 +6,10 @@
 > 关联文件: 无
 > 状态: active
 
+## 概要
+
+`tailscale serve --bg --https=3000 3000` + Next.js `next dev -H 127.0.0.1`。
+
 ## 背景
 
 在开发过程中，需要让其他设备（手机、平板）通过外网访问本地 `pnpm dev` 启动的 Next.js 开发服务器进行手动验证。Tailscale Serve 可以将本地端口映射到 tailnet 域名上，提供 HTTPS 访问。
@@ -62,5 +66,5 @@ tailscale serve status
 ## 关联
 
 - 推翻了: 无
-- 关联 pitfall: `memory/pitfalls/tailscale-nextjs-port-conflict.md`
-- 关联 spec: `specs/engineering-cleanup.md` §T-1.2.3
+- 关联 pitfall: `memory/pitfalls/tailscale-port-conflict.md`
+- 关联 spec: `specs/archive/engineering-cleanup/engineering-cleanup.md` §T-1.2.3

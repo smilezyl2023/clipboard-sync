@@ -5,6 +5,10 @@
 > 关联文件: `src/app/globals.css`
 > 状态: active
 
+## 概要
+
+纯 CSS + HSL 变量 + BEM 风格前缀，所有样式集中在 globals.css，不用 Tailwind。
+
 ## 背景
 
 项目不使用 Tailwind CSS，所有样式集中在 `globals.css` 中管理。
@@ -28,4 +32,4 @@
 
 ## 关联
 
-- 关联 spec: `specs/search-filter-darkmode.md` §深色模式
+- 关联 spec: `specs/archive/search-filter-darkmode/search-filter-darkmode.md` §深色模式

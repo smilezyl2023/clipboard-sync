@@ -5,6 +5,10 @@
 > 关联文件: `src/lib/auth.ts`, `src/app/api/*/route.ts`
 > 状态: active
 
+## 概要
+
+`x-user-phone` 明文头 + `ALLOWED_PHONE` 环境变量，单用户场景最简鉴权方案。
+
 ## 背景
 
 项目面向个人自部署场景，仅需验证「是否是部署者本人」而非多用户 RBAC。需要选择一个最简单的鉴权方案。

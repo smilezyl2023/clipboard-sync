@@ -3,9 +3,9 @@
 > 创建日期: 2026-04-23
 > 状态: COMPLETED
 > 进度: 4/4 任务完成
-> 最后更新: 2026-04-30
+> 最后任务: T-2.2.2 ✅ 2026-04-29 — 深色模式切换按钮 + localStorage 记忆（[详情](search-filter-darkmode.history.md#t-222)）
 > 关联任务: T-2.1.1 ~ T-2.2.2
-> 相关 memory: 无
+> 相关 memory: convention/css-architecture, pitfall/tailscale-port-conflict
 
 ## 目标（WHY）
 

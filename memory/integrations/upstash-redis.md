@@ -5,6 +5,10 @@
 > 关联文件: `src/lib/redis.ts`, `src/lib/store.ts`
 > 状态: active
 
+## 概要
+
+`Redis.fromEnv()` 连接，key `user:{phone}`，文本 7 天 TTL，记录上限 100 条。
+
 ## 背景
 
 项目使用 Upstash Redis 存储用户数据和记录索引。
@@ -34,4 +38,4 @@
 
 ## 关联
 
-- 关联 pitfall: `memory/pitfalls/upstash-redis-auto-deserialize.md`
+- 关联 pitfall: `memory/pitfalls/upstash-deserialize.md`

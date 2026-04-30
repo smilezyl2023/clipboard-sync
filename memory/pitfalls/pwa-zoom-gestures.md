@@ -5,6 +5,10 @@
 > 关联文件: `src/app/page.tsx`
 > 状态: active
 
+## 概要
+
+JS 阻止双指/Ctrl 滚轮缩放违反 WCAG 但 PWA 场景无替代方案，禁止移除。
+
 ## 背景
 
 App 需要作为 PWA 添加到手机主屏幕使用。iOS Safari 在 PWA 模式下无视 viewport meta 的 `user-scalable=no` 和 `maximum-scale=1`，用户仍可双指缩放，破坏类原生 App 体验。

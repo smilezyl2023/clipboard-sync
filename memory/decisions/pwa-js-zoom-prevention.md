@@ -5,6 +5,10 @@
 > 关联文件: `src/app/page.tsx`
 > 状态: active
 
+## 概要
+
+iOS Safari PWA 模式无视 viewport meta，必须 JS preventDefault 阻止双指缩放。
+
 ## 背景
 
 App 作为 PWA 添加到手机主屏幕后，iOS Safari 无视 viewport meta 的 `user-scalable=no` 和 `maximum-scale=1`，用户仍可双指缩放。需要通过 JS 层阻止。
@@ -29,4 +33,4 @@ App 作为 PWA 添加到手机主屏幕后，iOS Safari 无视 viewport meta 的
 
 ## 关联
 
-- 关联 pitfall: `memory/pitfalls/pwa-js-gesture-zoom-prevention.md`
+- 关联 pitfall: `memory/pitfalls/pwa-zoom-gestures.md`

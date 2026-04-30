@@ -3,9 +3,9 @@
 > 创建日期: 2026-04-23
 > 状态: COMPLETED
 > 进度: 5/5 任务完成
-> 最后更新: 2026-04-27
+> 最后任务: T-4.3.1 ✅ 2026-04-27 — 图片缩略图 URL `?w=200` 参数优化（[详情](security-hardening.history.md#t-431)）
 > 关联任务: T-4.1.1 ~ T-4.1.3, T-4.2.1 ~ T-4.3.1
-> 相关 memory: 无
+> 相关 memory: convention/api-error-format
 
 ## 目标（WHY）
 

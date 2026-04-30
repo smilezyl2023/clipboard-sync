@@ -3,9 +3,9 @@
 > 创建日期: 2026-04-23
 > 状态: COMPLETED
 > 进度: 8/8 任务完成
-> 最后更新: 2026-04-27
+> 最后任务: T-1.2.5 ✅ 2026-04-27 — 清理死代码（[详情](engineering-cleanup.history.md#t-125)）
 > 关联任务: T-1.1.1 ~ T-1.2.5
-> 相关 memory: 无
+> 相关 memory: convention/api-error-format, convention/component-hooks-dirs, decision/pnpm-as-package-manager
 
 ## 目标（WHY）
 

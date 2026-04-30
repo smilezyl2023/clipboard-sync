@@ -3,9 +3,9 @@
 > 创建日期: 2026-04-26
 > 状态: COMPLETED
 > 进度: 5/5 任务完成
-> 最后更新: 2026-04-30
+> 最后任务: T-5.2.3 ✅ 2026-04-30 — E2E 登录失败 + 批量删除边界（[详情](testing.history.md#t-523)）
 > 关联任务: T-5.1.1 ~ T-5.2.3
-> 相关 memory: 无
+> 相关 memory: pitfall/upstash-deserialize, pitfall/playwright-route-fallback
 
 ## 目标（WHY）
 

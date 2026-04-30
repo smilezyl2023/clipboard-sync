@@ -5,6 +5,10 @@
 > 关联文件: `e2e/helpers.ts`, `e2e/history-delete.spec.ts`
 > 状态: active
 
+## 概要
+
+mock 辅助函数对不关心的方法应用 `route.fallback()` 而非 `route.continue()`。
+
 ## 背景
 
 修复 T-5.2.2 回归时发现 2 个 history-delete 测试失败，`deletedId` 始终为 null。根因是 `mockRecordsList` 的 `**/api/records` 路由在非 GET 请求时调用了 `route.continue()`，导致 DELETE 请求绕过后续 `**/api/records/delete**` handler 直接发往真实服务端。
@@ -45,5 +49,5 @@ await page.route('**/api/records', async route => {
 
 ## 关联
 
-- 关联 spec: `specs/testing.md` §T-5.2.2
+- 关联 spec: `specs/archive/testing/testing.md` §T-5.2.2
 - 关联文件: `e2e/helpers.ts`（`mockRecordsList` 已修复为 `fallback()`）

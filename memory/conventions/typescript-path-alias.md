@@ -5,6 +5,10 @@
 > 关联文件: `tsconfig.json`
 > 状态: active
 
+## 概要
+
+`@/*` 映射 `./src/*`，避免超 2 层的相对路径 `../../...`。
+
 ## 背景
 
 项目配置了 TypeScript 路径别名，避免深层相对路径导入。
@@ -31,4 +35,4 @@ import { getRecords } from '../../../lib/store';
 
 ## 关联
 
-- 关联 spec: `specs/engineering-cleanup.md`
+- 关联 spec: `specs/archive/engineering-cleanup/engineering-cleanup.md`
