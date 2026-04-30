@@ -24,6 +24,7 @@ build
 test-results
 playwright-report
 .playwright-mcp
+.playwright/
 
 # Claude Code local config
 .claude/
